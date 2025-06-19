@@ -1,8 +1,23 @@
 # Backup Automation for Azure PostgreSQL Flexible Server
 
+## Table of contents
+
+* [Introduction](#introduction)
+* [Requirements](#requirements)
+* [Terraform](#terraform)
+* [Helm](#helm)
+
 ## Introduction
 
 The following project configures one cronjob application in Azure Kubernetes Server to take full backups of a database on one Azure Database for PostgreSQL Flexible Server.
+
+## Requirements
+
+- Terraform
+- Azure CLI
+- Kubectl
+- Helm Chart
+- Helmfile
 
 ## Terraform
 
