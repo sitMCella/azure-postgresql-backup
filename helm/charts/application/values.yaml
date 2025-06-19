@@ -1,0 +1,24 @@
+namespace: "application"
+schedule: "0 2 * * *"
+
+serviceAccount:
+  name: "application-service-account"
+  annotations:
+    azure.workload.identity/client-id: "<managed_identity_client_id>"
+
+postgresqlSecret:
+  postgresqlUser: "<database_admin_username>"
+  postgresqlPassword: "<database_admin_password>"
+
+postgresqlClient:
+  image: "<container_registry_name>.azurecr.io/postgresql/postgresql-client:latest"
+  host: "<database_host>"
+  database: "<database_name>"
+  port: "5432"
+
+storageAccountClient:
+  image: "mcr.microsoft.com/azure-cli:latest"
+  subscriptionId: "<subscription_id>"
+  clientId: "<managed_identity_client_id>"
+  storageName: "<storage_account_name>"
+  containerName: "backups"

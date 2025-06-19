@@ -1,0 +1,7 @@
+apiVersion: v2
+name: postgresql-backup
+description: Helm Chart for the PostgreSQL Flexible Server backup automation.
+
+type: application
+version: 0.1.0
+appVersion: "1.0"

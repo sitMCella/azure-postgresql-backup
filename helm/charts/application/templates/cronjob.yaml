@@ -1,0 +1,65 @@
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: postgresql-backup-cronjob
+  namespace: {{ .Values.namespace }}
+  labels:
+    azure.workload.identity/use: "true"
+spec:
+  schedule: "{{ .Values.schedule }}"
+  jobTemplate:
+    spec:
+     template:
+        metadata:
+          labels:
+            azure.workload.identity/use: "true"
+        spec:
+          serviceAccountName: {{ .Values.serviceAccount.name }}
+          volumes:
+            - name: backups
+              emptyDir: {}
+          containers:
+          - name: postgresql-backup
+            image: {{ .Values.postgresqlClient.image }} 
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: PGHOST
+              value: "{{ .Values.postgresqlClient.host }}"
+            - name: PGDATABASE
+              value: "{{ .Values.postgresqlClient.database }}"
+            - name: PGPORT
+              value: "{{ .Values.postgresqlClient.port }}"
+            - name: PGUSER
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql
+                  key: postgresqlUser
+            - name: PGPASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: postgresql
+                  key: postgresqlPassword
+            command: ["/bin/sh", "-c"]
+            args:
+              - >
+                pg_dump -F c postgresql://$PGUSER:$PGPASSWORD@$PGHOST:$PGPORT/$PGDATABASE -f "/backups/backup_$PGDATABASE.dump"
+            volumeMounts:
+              - name: backups
+                mountPath: "/backups"
+          - name: blob-upload
+            image: {{ .Values.storageAccountClient.image }}
+            imagePullPolicy: IfNotPresent
+            env:
+            - name: PGDATABASE
+              value: "{{ .Values.postgresqlClient.database }}"
+            command: ["/bin/sh", "-c"]
+            args:
+              - >
+                while [ ! -f "/backups/backup_$PGDATABASE.dump" ]; do sleep 1; done;
+                az login --federated-token "$(cat $AZURE_FEDERATED_TOKEN_FILE)" --service-principal -u $AZURE_CLIENT_ID -t $AZURE_TENANT_ID;
+                az account set --subscription {{ .Values.storageAccountClient.subscriptionId }};
+                az storage blob upload --account-name {{ .Values.storageAccountClient.storageName }} --container {{ .Values.storageAccountClient.containerName }} --name backup_$PGDATABASE_$(date +%Y-%m-%d_%H-%M).dump --file /backups/backup_$PGDATABASE.dump --auth-mode login;
+            volumeMounts:
+              - name: backups
+                mountPath: "/backups"
+          restartPolicy: OnFailure

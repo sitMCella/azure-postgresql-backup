@@ -1,0 +1,7 @@
+releases:
+  - name: application
+    namespace: application
+    chart: ./charts/application
+    createNamespace: true
+    values:
+      - ./charts/application/values.yaml
